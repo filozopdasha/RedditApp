@@ -23,6 +23,7 @@ struct RedditPost: Codable {
 
 struct RedditData: Codable {
     let children: [Info]
+    let after: String?
 }
 
 struct Info: Codable {
@@ -35,8 +36,12 @@ struct RedditResponse: Codable {
 
 
 
-func urlBuilder(subreddit: String, limit: Int, after: String, another: [String: String]) -> URL? {
-    var redditUrl = "https://www.reddit.com/r/\(subreddit)/top.json?limit=\(limit)&after=\(after)"
+func urlBuilder(subreddit: String, limit: Int, after: String?, another: [String: String]) -> URL? {
+    var redditUrl = "https://www.reddit.com/r/\(subreddit)/top.json?limit=\(limit)"
+    if let after = after, !after.isEmpty {
+        redditUrl += "&after=\(after)"
+    }
+    print(redditUrl)
     var parameters: [String] = []
     for (key, value) in another {
         parameters.append("\(key)=\(value)")
@@ -49,23 +54,22 @@ func urlBuilder(subreddit: String, limit: Int, after: String, another: [String: 
     return url
 }
 
-func getPostInfo(subreddit: String, limit: Int, after: String, another: [String: String] = [:]) async -> RedditPost? {
-    guard let url = urlBuilder(subreddit: subreddit, limit: limit, after: after, another: another) else {
+func getPostInfo(subreddit: String, limit: Int, after: String?, another: [String: String] = [:]) async -> ([RedditPost]?, String?) {
+    guard let url = urlBuilder(subreddit: subreddit, limit: limit, after: after ?? "", another: another) else {
         print("Error")
-        return nil
+        return (nil, "")
     }
     
     do {
         let (data, _) = try await URLSession.shared.data(from: url)
         let response = try JSONDecoder().decode(RedditResponse.self, from: data)
-        
-        return response.data.children.first?.data ?? {
-            print("No posts were found(")
-            return nil
-        }()
+        let lol = response.data.children.map { $0.data }
+        print(after)
+        print(response.data.after)
+        return (lol, response.data.after)
     } catch {
         print("Error")
-        return nil
+        return (nil, "")
     }
 }
 
