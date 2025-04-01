@@ -8,18 +8,22 @@
 
 import Foundation
 
-struct RedditPost: Codable {
+class RedditPost: Codable {
     let title: String
     let author_fullname: String
     let domain: String
     let num_comments: Int
-    let saved: Bool
+    var saved: Bool
     let ups: Int
     let downs: Int
     let url_overridden_by_dest: String?
     let created: Int
-}
+    let permalink: String
 
+    func toggleSaved() {
+        saved.toggle()
+    }
+}
 
 struct RedditData: Codable {
     let children: [Info]
@@ -33,8 +37,6 @@ struct Info: Codable {
 struct RedditResponse: Codable {
     let data: RedditData
 }
-
-
 
 func urlBuilder(subreddit: String, limit: Int, after: String?, another: [String: String]) -> URL? {
     var redditUrl = "https://www.reddit.com/r/\(subreddit)/top.json?limit=\(limit)"
@@ -63,14 +65,18 @@ func getPostInfo(subreddit: String, limit: Int, after: String?, another: [String
     do {
         let (data, _) = try await URLSession.shared.data(from: url)
         let response = try JSONDecoder().decode(RedditResponse.self, from: data)
-        let lol = response.data.children.map { $0.data }
-        print(after)
-        print(response.data.after)
-        return (lol, response.data.after)
+        let downloadedPosts = response.data.children.map { $0.data }
+        print(after ?? "nil")
+        print(response.data.after ?? "nil")
+        return (downloadedPosts, response.data.after)
     } catch {
-        print("Error")
+        print("Error decoding JSON:", error)
         return (nil, "")
     }
 }
+
+
+
+
 
 
